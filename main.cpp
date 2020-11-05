@@ -21,10 +21,10 @@ struct Voxel {
 static u16 SLICE_WIDTH = 256;
 static u16 SLICE_HEIGHT = 256;
 static u16 SLICE_COUNT = 1;
-static u8 DEPTH_SIZE = 1;
 static u32 SLICE_VOXEL_COUNT;
 static u32 DATA_VOXEL_COUNT;
 static bool READ_ID_BEFORE_DOT = false;
+
 int main(int argc, char** argv) {
     
     int i = 2;
@@ -36,8 +36,6 @@ int main(int argc, char** argv) {
            SLICE_HEIGHT = std::stoi(name.substr(13));
         } else if(name.find("slice-count:") == 0) {
            SLICE_COUNT = std::stoi(name.substr(12));
-        } else if(name.find("depth-size:") == 0) {
-           DEPTH_SIZE = std::stoi(name.substr(11));
         } else if(name.find("read-id-before-dot") == 0) {
             READ_ID_BEFORE_DOT = true;
         }
@@ -71,7 +69,7 @@ int main(int argc, char** argv) {
                             const u32 offset = id * SLICE_VOXEL_COUNT;
                             printf("Slice id: %u. File (%s) loaded.\n", id, name.c_str());
                             fseek(f, 18, SEEK_SET);
-                            fread(&(data[offset]), sizeof(u16), SLICE_VOXEL_COUNT, f);
+                            fread(&(data[offset]), sizeof(u32), SLICE_VOXEL_COUNT, f);
                             fclose(f);
                             ns++;
                         }
@@ -92,19 +90,24 @@ int main(int argc, char** argv) {
         FILE* const f = fopen("voxels.bin", "wb");
         if(f != NULL) {
             u16 k = 0;
-            while(k < (SLICE_COUNT * DEPTH_SIZE)) {
+            while(k < SLICE_COUNT) {
                 u16 i = 0;
                 while(i < SLICE_WIDTH) {
                     u16 j = 0;
                     while(j < SLICE_HEIGHT) {
-                        const u32 color = data[i + j * SLICE_WIDTH + (k / DEPTH_SIZE)  * SLICE_VOXEL_COUNT];
+                        const u32 color = data[i + j * SLICE_WIDTH + k * SLICE_VOXEL_COUNT];
                         if((color & 0xFF000000) != 0) {
+                            const u32 a = (u8)(color >> 24);
+                            const u32 r = (u8)(color >> 16);
+                            const u32 g = (u8)(color >> 8);
+                            const u32 b = (u8)color;
+                            
                             const Voxel voxel = {
-                                color,
+                                r << 24 | g << 16 | b << 8 | a,
                                 {
                                     (i16)(i - SLICE_HALF_WIDTH),
                                     (i16)(j - SLICE_HALF_HEIGHT),
-                                    (i16)(k - (SLICE_HALF_COUNT * DEPTH_SIZE)),
+                                    (i16)(k - SLICE_HALF_COUNT),
                                     1
                                 }
                             };
@@ -114,7 +117,7 @@ int main(int argc, char** argv) {
                     }
                     i++;
                 }                
-                printf("\rWrite %u / %u", k + 1, SLICE_COUNT * DEPTH_SIZE);
+                printf("\rWrite %u / %u", k + 1, SLICE_COUNT);
                 k++;
             }
             fclose(f);
