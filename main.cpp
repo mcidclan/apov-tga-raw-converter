@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
                                 r << 24 | g << 16 | b << 8 | a,
                                 {
                                     (i16)(i - SLICE_HALF_WIDTH),
-                                    (i16)(j - SLICE_HALF_HEIGHT),
+                                    (i16)-(j - SLICE_HALF_HEIGHT),
                                     (i16)(k - SLICE_HALF_COUNT),
                                     1
                                 }
